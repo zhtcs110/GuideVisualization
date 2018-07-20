@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<!-- Bootstrap core CSS -->
+<link href="css/bootstrap.min.css" rel="stylesheet">
+
+<script src="js/jquery-3.3.1.min.js"></script>
+<script src="js/d3.min.js"></script>
+<script src="js/d3.js"></script>
+<script src="js/d3-hierarchy.min.js"></script>
+<script src="js/tooljs.js"></script>
+<script src="js/bootstrap.min.js"></script>
+</head>
+<style>
+ .link.link-active {
+  stroke: #0da4d3!important;
+  stroke-width: 1.5px;
+}
+
+.label-active {
+  fill: #0da4d3;
+}
+
+.node-active {
+  fill:#0da4d3;
+} 
+/* 路径显示样式 */
+.node circle {
+	stroke: steelblue;
+	stroke-width: 1px;
+	cursor: pointer;
+}
+
+.node {
+	font: 12px sans-serif;
+	display: block;
+	position:relative;
+}
+
+
+/* 节点样式 */
+.hidenode {
+	font: 12px sans-serif;
+	display: none;
+}
+
+.link {
+	fill: none;
+	stroke: #ccc;
+	stroke-width: 1px;
+}
+
+#searchresult {
+	position: absolute;
+	width: 15%;
+	left:218px;
+	top:44px;
+	height: 200px;
+	border: 1px solid #66afe9;
+	border-top: 0px;
+	overflow: auto;
+	display: none;
+}
+
+.div_item {
+	width: 100%;
+	height: 20px;
+	margin-top: 1px;
+	font-size: 13px;
+	line-height: 20px;
+}
+#searchText {
+	width: 99%;
+}
+#searchTool {
+	float:right;
+	width: 200px;
+	margin: 0 auto;
+	margin-top: 40px;
+}
+/* 搜索样式 */
+.hover {
+	background: #1C86EE;
+	color: white;
+}
+hr{
+	background-color:grey;
+	height:1px;
+	border:none;
+}
+</style>
+<body>
+	<div id="navs">
+	<nav class="navbar navbar-default" role="navigation">
+    <div class="container-fluid"> 
+    <div class="navbar-header">
+        <a class="navbar-brand" href="#">指南可视化</a>
+    </div>
+    <form class="navbar-form navbar-left" role="search">
+    		<select id="choice" class="form-control">
+				<option value="dig">诊断</option>
+				<option value="inv">措施</option>
+			</select> 
+        <div class="form-group">
+            <input type="text" class="form-control" id="searchText" placeholder="请输入关键词">
+            
+        </div>
+        <button type="button" class="btn btn-default" id="searchBtn" onclick="Onsearch()">
+        <span class="glyphicon glyphicon-search"></span>
+        </button>
+        <button type="button" class="btn btn-default" id="searchBtn" onclick="Goback()">
+        <span class="glyphicon glyphicon-home"></span>
+        </button>
+    </form>
+    <ul class="nav navbar-nav navbar-right"> 
+    <li>
+    <ul class="nav navbar-nav">
+            <li class="active"><a href="conceptmap.html">主页</a></li>
+             <li><a href="cluster.html">聚类分析图</a></li>
+            <li><a href="entityInput.html">演示图</a></li>
+           </ul>
+           </li>           
+        </ul> 
+    </div>
+</nav>
+	</div>
+	<div id="searchresult" style="display: none;"></div>
+	<div id="graph">
+	</div> 
+	<div id="footer"><hr>
+	<div style="float:right;right:20px">visualizations by zht</div>
+	</div>
+	<script>
+	
+var width = 1000;	//画布的宽度
+var height = 1000;	//画布的高度
+var svg = d3.select("body")				//选择文档中的body元素
+.select("#graph")
+.append("svg")				//添加一个svg元素
+.attr("width", width)		//设定宽度
+.attr("height", height);	//设定高度
+var csvdataset=[];
+drawAll();
+
+function drawAll(){
+
+	d3.select('svg').selectAll('*').remove();
+	var svg=d3.select("svg");
+	d3.csv("display.csv",function(error,csvdata){
+		//console.log(csvdata);
+		csvdataset=csvdata;
+		var dataset=[];
+		for( var i=0; i<csvdata.length; i++ ){
+			var dig = csvdata[i].DIAGNOSIS;
+			if(dataset.indexOf(dig)==-1)
+				dataset.push(dig);
+		}			
+		//console.log(dataset);
+	var rectHeight = 20;	//每个矩形所占的像素高度(包括空白)
+
+	var rectg=svg.selectAll("g")	
+	.data(dataset)
+	.enter()
+	.append("g")
+	//.attr("class","gdiv")
+	.attr("transform", function(d) {
+	      return "translate(" + width/2 + "," + 120 + ")";
+	  });
+	// .on('click', click);
+
+	rectg.append("rect")
+	.attr("x",24)
+	.attr("y",function(d,i){
+			return i * rectHeight;
+	})
+	.attr("width",300)
+	.attr("height",rectHeight-2)
+	.attr("fill","black")
+	.on("mouseover",function(d,i){
+	            d3.select(this)
+	                .attr("fill","#0da4d3");
+	        })
+	.on("mouseout",function(d,i){
+	            d3.select(this)
+	                .transition()
+	                .duration(500)
+	                .attr("fill","black");
+	        })
+	.on("click", function O()
+	{	
+		
+	         var dig=d3.select(this.parentNode).select("text").text();
+	         drawDigGraph(dig);
+	} );
+
+	rectg.append("text")
+	.attr("dy",function(d,i){
+		  return 1+1.42*i+"em";
+	})
+	.attr("dx","2em")
+	.attr("fill","white")
+	//.style("font-size", "15px")
+	.text(function(d){
+			return d;
+		}); 	
+	});
+	}
+
+	
+//作诊断中心图
+function drawDigGraph(digname){
+
+    var data=[];
+    //少判断的标志
+    var flag=0;
+   for(var i=0;i<csvdataset.length;i++){
+   	if(digname==csvdataset[i].DIAGNOSIS){
+   		var invset=csvdataset[i].Interventions.split(",");
+   		for(var j=0;j<invset.length;j++){
+   			var mapp={};
+   			mapp["Diagnosis"]=digname;
+   			mapp["Outcome"]=csvdataset[i].Outcome;
+   			mapp["Interventions"]=invset[j];
+   			data.push(mapp);
+   		}
+   		flag=1;
+   	}
+   	else if(flag==1)
+   		break;
+   }
+   var nestedData = d3.nest()
+   .key(function(d) { return d.Diagnosis; })
+   .key(function(d) { return d.Outcome; })
+   .entries(data);
+   var roots = d3.hierarchy(nestedData[0],function(d) { return d.values; });
+   //console.log(roots);
+  //location.href="rotateTree.html?data="+root;
+   
+ //图像区域大小
+   var R = 900;
+   //动画持续时间
+   var duration=500;
+   //节点编号
+   var index=0;
+   //定义一个Tree对象,定义旋转角度和最大半径
+   var tree = d3.layout.tree()
+   .size([360,R/2-120])
+   .separation(function(a,b) { return (a.parent == b.parent ? 1 : 2)/a.depth;});
+   //定义布局方向
+   var diagonal = d3.svg.diagonal()
+   .projection(function(d) {
+   var r = d.y, a = (d.x-90) / 180 * Math.PI;
+   return [r * Math.cos(a), r * Math.sin(a)];
+   });
+   
+   //清除之前内容
+   d3.select('svg').selectAll('*').remove();
+   //使用之前画布，移动到圆心位置
+   var svg=d3.select("svg")
+	.attr("width", R)
+   .attr("height", R)
+   .attr("transform", function(d){ return "translate("+150 + ")";})
+   .append("g")
+   .attr("transform", function(d){ return "translate("+R/2+"," + R/2 + ")";});
+   
+   var root=roots;
+   //根据数据生成nodes集合
+   var nodes = tree.nodes(roots);
+   //console.log(nodes);
+   //记录现在的位置
+   nodes.forEach(function(d){
+   	if(d.depth==1){
+   		l=d.children.length;
+   		var newNodeObj = {               	
+   				Interventions:l
+           	  };
+           var newNode = d3.hierarchy(newNodeObj);
+           newNode.depth = d.depth + 1; 
+           newNode.height = d.height - 1;
+           newNode.parent = d; 
+           if(d.children){
+           	d._children=d.children;
+           	d.children=[];
+           }
+           d.children.push(newNode);
+           //console.log(d);
+           //update(d);
+   	}
+   });
+   nodes.forEach(function(d){
+   d.x0 = d.x;
+   d.y0 = d.y;
+   });
+   var nodes = tree.nodes(root).reverse();
+    //获取node集合的关系集合
+   var links = tree.links(nodes);
+	//console.log(links);
+   function zoom() {
+       d3.select(this).attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+   }
+   var zoomListener = d3.behavior.zoom().scaleExtent([0.1, 3]).on("zoom", zoom);
+
+   //根据node集合生成节点,添加id是为了区分是否冗余的节点
+   var node = svg.selectAll(".node")
+   .data(nodes,function(d){return d.id|| (d.id = ++index);});
+                 	
+   
+ //为关系集合设置曲线连接
+   var link=svg.selectAll(".link")
+   .data(links, function(d) { return d.target.id;})
+   .enter()
+   .append("path")
+   .each(function(d) { d.target.linkNode = this;})
+   //.filter(function(d){return d.target.depth<2;})
+   .attr("class", "link")
+   .attr("d",diagonal);
+ 
+   node.enter()
+   .append("g")
+   //.each(function(d){if(d.children) d.children.nextele=this;})
+   .attr("class", "node")
+   .attr("transform",function(d){return "rotate(" + (d.x-90) + ")translate(" + d.y + ")"; })
+   .on("mouseover", mouseovered(true))
+   .on("mouseout", mouseovered(false))
+   .on("click",nodeClick);
+   //为节点添加圆形标记
+   node.append("circle")
+   //.filter(function(d){return d.depth<2;})
+   .attr("fill",function(d){return d.depth==1?"#fff":"#000";})
+   .attr("r", function(d){return d.depth>0?(d.depth>1? Math.log(parseInt(d.data["Interventions"])+1)+20:4.5):90;});
+   
+   //为节点添加说明文字
+   var text=node.append("text")
+   //.filter(function(d){return d.depth<2;})
+   .attr("dy", ".3em")
+   .attr("font-size",function(d){return d.depth>0?15:15;})
+   .attr("fill",function(d){return d.depth>0?(d.depth==2&&d.parent.children.length==1?"#fff":"#000"):"#fff";})
+   .attr("text-anchor", function(d) { 
+	   if(d.depth==0||(d.depth==2&&d.parent.children.length==1))
+	   return "middle";
+	   else if(d.x < 180) 
+		   return "start"; 
+		   else {
+			   return "end"; 
+		   }
+   })
+   .text(function(d){return d.depth>1?d.data["Interventions"]:null;})
+   .attr("fill-opacity",1)
+   .attr("transform", function(d) { return d.depth>0?(d.x < 180 ? "translate(8)" : "rotate(180)translate(-8)")
+   		:"rotate(-90)translate(-13)";})
+   .selectAll("tspan")
+	.data(function(d){return d.depth>1?d.data["Interventions"]:d.data["key"].split(" ");})
+	.enter()
+	.append("tspan")
+	.attr("x",20)
+	.attr("dy","1em")
+	.text(function(d){
+		return d;
+	});
+	     	       
+   //点击的话，隐藏或者显示子节点
+   function nodeClick(d)
+   {
+   		  
+   	id=d.parent.id;
+   if(d.depth==2){	
+   if (d.parent.children.length==1)
+   	//展开措施节点
+   {
+   	var swap=d.parent._children;
+   d.parent._children = d.parent.children;
+   d.parent.children =swap ;
+   	nodes.forEach(function(d){
+  		if(d.depth==1&&d.children.length>1&&d.id!=id)
+  		{
+  			//收回其他展开节点
+  			var swap=d.children;
+  	        d.children = d._children;
+  	        d._children =swap;
+  		}
+  	});  
+   	
+   	updateDig(d);
+   }              
+   else {
+   	//跳入措施中心页面
+   	//console.log(d);
+   	var data=[];
+   	var inv=d3.select(this).select("text").text();
+   	drawInvGraph(inv);
+   }
+   }
+   }
+   
+   	function updateDig(source)
+    {
+    //取得现有的节点数据,因为设置了Children属性，没有Children的节点将被删除
+    var nodes = tree.nodes(root).reverse();
+    //console.log(nodes);
+    var links = tree.links(nodes);
+    //为节点更新数据
+    var node = svg.selectAll("g.node")
+    .data(nodes,function(d){return d.id|| (d.id = ++index);});
+    //为链接更新数据
+    var link = svg.selectAll("path.link").data(links, function(d) {return d.target.id;});
+    //更新链接
+    link.enter()
+    .append("path")
+     .each(function(d) { d.target.linkNode = this;})
+    .attr("class", "link")
+    .attr("d", function(d) {
+    var o = {x: source.x, y: source.y};
+    return diagonal({source: o, target: o});
+    });
+    link.transition()
+    .duration(duration)
+    .attr("d",diagonal);
+    //移除无用的链接
+    link.exit()
+    .transition()
+    .duration(duration)
+    .attr("d", function(d) {
+    var o = {x: source.x, y: source.y};
+    return diagonal({source: o, target: o});
+    })
+    .remove();
+    //更新节点集合
+    var nodeEnter = node.enter()
+    .append("g")
+    .attr("class", "node")
+    .attr("transform",function(d){return "rotate(" + (source.x0-90) + ")translate(" + source.y0 + ")"; })
+    .on("mouseover", mouseovered(true))
+    .on("mouseout", mouseovered(false))
+    .on("click",nodeClick);
+    
+    nodeEnter.append("circle")
+    .attr("fill",function(d){return d.depth==1?"#fff":"#000";})
+    .attr("r", function(d){
+    	if(d.depth>0){
+    		if(d.depth>1){
+    			if(d.parent.children.length>1)
+    				return 4.5;
+    			else{
+    				return Math.log(parseInt(d.data["Interventions"])+1)+20;
+    			}
+    		}
+    	}
+    	else{
+    		return 100;
+    	}
+    });
+    //为节点添加说明文字
+    nodeEnter.append("text")
+    .attr("dy", ".3em")
+    .attr("font-size",function(d){return d.depth>1?11:20;})
+    .attr("fill",function(d){return d.depth>0?(d.depth==2&&d.parent.children.length==1?"#fff":"#000"):"#fff";})
+    .text(function(d){return d.depth>1?d.data["Interventions"]:d.data["key"];})
+    .attr("text-anchor", function(d) { return (d.depth==0||(d.depth==2&&d.parent.children.length==1))?"middle":(d.x < 180 ? "start" : "end"); })
+    .attr("transform", function(d) { return d.depth>0?(d.x < 180 ? "translate(8)" : "rotate(180)translate(-8)"):"translate(0)"; });
+    //节点动画
+    var nodeUpdate = node.transition()
+    .duration(duration)
+    .attr("transform", function(d) { return "rotate(" + (d.x-90) + ")translate(" + d.y + ")"; });
+    //将无用的子节点删除
+    var nodeExit =node.exit()
+    .transition()
+    .duration(duration)
+    .attr("transform", function(d){return "rotate(" + (source.x-90) + ")translate(" + source.y + ")"; })
+    .remove();
+    //记录下当前位置,为下次动画记录初始值
+    nodes.forEach(function(d) {
+    d.x0 = d.x;
+    d.y0 = d.y;
+    });
+    }  
+   	
+}
+function mouseovered(active){
+  	 return function(d) {
+  		 if(d.depth==2&&d.parent.children.length==1){
+  	      d3.select(this).selectAll("circle").classed("node-active", active); 			 
+  		 }
+  		 else{
+  	      d3.select(this).selectAll("circle").classed("node-active", active);
+  	   	  d3.select(this).selectAll("text").classed("label-active", active);
+  		 }
+  			 
+  	   	  do{
+  	   		  //console.log(d.nextele);
+  	   		 d3.select(d.nextele).select("circle").classed("node-active", active);
+     	   	 d3.select(d.nextele).select("text").classed("label-active", active);
+  	   			d3.select(d.linkNode).classed("link-active", active);
+  	   	  }
+  	   	  while(d=d.parent);
+  	    };
+  } 
+   function moveToFront() {
+  	    this.parentNode.appendChild(this);
+  	  }    
+//画措施中心图
+function drawInvGraph(invname){
+	var data=[];
+	 for(var i=0;i<csvdataset.length;i++){
+		 var invset=csvdataset[i].Interventions.split(",");
+		 if(invset.indexOf(invname)!=-1)
+			 {
+			 	var mapp={};
+			 	mapp["inv"]=invname;
+			 	mapp["ouc"]=csvdataset[i].Outcome;
+			 	mapp["dig"]=csvdataset[i].DIAGNOSIS;
+			 	data.push(mapp);
+			 }
+	 }       		       		                
+        var nestedData = d3.nest()
+        .key(function(d) { return d.inv; })
+        .key(function(d) { return d.ouc; })
+        .entries(data);
+        var roots = d3.hierarchy(nestedData[0],function(d) { return d.values; });
+        
+        var R =900;
+        var duration=500;
+        var index=0;
+        var tree = d3.layout.tree()
+        .size([360,R/2-120])
+        .separation(function(a,b) { return (a.parent == b.parent ? 1 : 2)/a.depth;});
+        var diagonal = d3.svg.diagonal()
+        .projection(function(d) {
+        var r = d.y, a = (d.x-90) / 180 * Math.PI;
+        return [r * Math.cos(a), r * Math.sin(a)];
+        });  	  
+        
+        d3.select('svg').selectAll('*').remove();
+        var svg=d3.select("svg")
+     	.attr("width", R)
+        .attr("height", R)
+        .attr("transform", function(d){ return "translate("+150+ ")";})
+        .append("g")
+        .attr("transform", function(d){ return "translate("+R/2+"," + R/2 + ")";});
+        
+        var root=roots;
+        var nds = tree.nodes(roots);
+        
+        nds.forEach(function(d){
+        d.x0 = d.x;
+        d.y0 = d.y;
+        });
+        var links = tree.links(nds);
+        function zoom() {
+            d3.select(this).attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+        }
+        var zoomListener = d3.behavior.zoom().scaleExtent([0.1, 3]).on("zoom", zoom);
+
+        var node = svg.selectAll(".node")
+        .data(nds,function(d){return d.id|| (d.id = ++index);});
+                      	   	        
+        var link=svg.selectAll(".link")
+        .data(links, function(d) { return d.target.id;})
+        .enter()
+        .append("path")
+         .each(function(d) { d.target.linkNode = this;})
+        .attr("class", "link")
+        .attr("d",diagonal);
+        
+        node.enter()
+        .append("g")
+        .attr("class", "node")
+        .attr("transform",function(d){return "rotate(" + (d.x-90) + ")translate(" + d.y + ")"; })
+        .on("mouseover", mouseovered(true))
+        .on("mouseout", mouseovered(false))
+        .on("click",nodeClick);
+        
+        node.append("circle")
+        .attr("fill",function(d){return d.depth==1?"#fff":"#000";})
+        .attr("r", function(d){return d.depth>0?(d.depth>1? 5:4.5):90;});
+        
+        node.append("text")
+        .attr("dy", ".3em")
+        .attr("font-size",function(d){return d.depth>0?15:20;})
+        .attr("fill",function(d){return d.depth>0?"#000":"#fff";})        
+        .attr("text-anchor", function(d) { 
+     	   if(d.depth==0)
+     	   return "middle";
+     	   else if(d.x < 180) 
+     		   return "start"; 
+     		   else {
+     			   return "end"; 
+     		   }
+        })
+        .text(function(d){return d.depth>1?d.data["dig"]:null;})
+        .attr("fill-opacity",1)
+        .attr("transform", function(d) { return d.depth>0?(d.x < 180 ? "translate(8)" : "rotate(180)translate(-8)")
+        		:"rotate(-90)translate(-13)";})
+        .selectAll("tspan")
+     	.data(function(d){return d.depth>1?"":d.data["key"].split(" ");})
+     	.enter()
+     	.append("tspan")
+     	.attr("x",20)
+     	.attr("dy","1em")
+     	.text(function(d){
+     		return d;
+     	});		
+        
+        
+        function nodeClick(d)
+        {	        		  	        	
+        if(d.depth==2){	
+        	var dig=d3.select(this).select("text").text();
+        	drawDigGraph(dig);
+        }
+        }
+        
+        function updateInv(source)
+        {
+        var nodes = tree.nodes(root).reverse();
+        var links = tree.links(nodes);
+        var node = svg.selectAll("g.node")
+        .data(nodes,function(d){return d.id|| (d.id = ++index);});
+        var link = svg.selectAll("path.link").data(links, function(d) {return d.target.id;});
+        link.enter()
+        .append("path")
+        .attr("class", "link")
+        .attr("d", function(d) {
+        var o = {x: source.x, y: source.y};
+        return diagonal({source: o, target: o});
+        });
+        link.transition()
+        .duration(duration)
+        .attr("d",diagonal);
+        link.exit()
+        .transition()
+        .duration(duration)
+        .attr("d", function(d) {
+        var o = {x: source.x, y: source.y};
+        return diagonal({source: o, target: o});
+        })
+        .remove();
+        var nodeEnter = node.enter()
+        .append("g")
+        .attr("class", "node")
+        .attr("transform",function(d){return "rotate(" + (source.x0-90) + ")translate(" + source.y0 + ")"; })
+        .on("click",nodeClick);
+        
+        nodeEnter.append("circle")
+        .attr("fill","#000")
+        .attr("r", function(d){
+        	if(d.depth>0){
+        		if(d.depth>1){
+        			if(d.parent.children.length>1)
+        				return 4.5;
+        			else{
+        				return 10;
+        			}
+        		}
+        	}
+        	else{
+        		return 100;
+        	}
+        });
+        nodeEnter.append("text")
+        .attr("dy", ".3em")
+        .attr("font-size",function(d){return d.depth>0?15:20;})
+        .attr("fill",function(d){return d.depth>0?(d.depth==2&&d.parent.children.length==1?"#fff":"#000"):"#fff";})
+        .text(function(d){return d.depth>1?d.data["dig"]:d.data["key"];})
+        .attr("text-anchor", function(d) { return d.x < 180 ? "start" : "end"; })
+        .attr("transform", function(d) { return d.x < 180 ? "translate(8)" : "rotate(180)translate(-8)"; });
+        var nodeUpdate = node.transition()
+        .duration(duration)
+        .attr("transform", function(d) { return "rotate(" + (d.x-90) + ")translate(" + d.y + ")"; });
+        var nodeExit =node.exit()
+        .transition()
+        .duration(duration)
+        .attr("transform", function(d){return "rotate(" + (source.x-90) + ")translate(" + source.y + ")"; })
+        .remove();
+        nodes.forEach(function(d) {
+        d.x0 = d.x;
+        d.y0 = d.y;
+        });
+        }
+}
+</script>
+
+
+
+</body>
+</html>
